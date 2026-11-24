@@ -3,9 +3,40 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | My proje test</title>
+    <title>MY META VEVERS</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <style>
+      html, body {
+        margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+        background: #0b0e14;
+        touch-action: none; overscroll-behavior: none;
+        -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+      }
+      #unity-container.unity-mobile { position: fixed; inset: 0; width: 100vw; height: 100dvh; }
+      #unity-canvas.unity-mobile { width: 100% !important; height: 100% !important; touch-action: none; }
+      #mobile-fullscreen-btn {
+        display: none; position: fixed; top: 12px; right: 12px; z-index: 9000;
+        background: rgba(15, 20, 30, 0.72); color: #fff; border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 8px; padding: 8px 12px; font: 600 13px/1 system-ui, sans-serif;
+        backdrop-filter: blur(6px); cursor: pointer;
+      }
+      #mobile-portrait-overlay {
+        display: none; position: fixed; inset: 0; z-index: 9999;
+        background: rgba(10, 14, 22, 0.95); color: #fff;
+        flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; padding: 24px; font-family: system-ui, -apple-system, sans-serif;
+      }
+      #mobile-portrait-overlay .rotate-icon { font-size: 54px; margin-bottom: 16px; }
+      #mobile-portrait-overlay h2 { margin: 0 0 8px; font-size: 20px; font-weight: 700; }
+      #mobile-portrait-overlay p { margin: 0 0 20px; font-size: 14px; opacity: 0.8; }
+      #mobile-portrait-overlay button {
+        background: #29b6f6; color: #081018; border: none; border-radius: 10px;
+        padding: 12px 20px; font-size: 15px; font-weight: 700; cursor: pointer;
+      }
+    </style>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -22,6 +53,13 @@
         <div id="unity-fullscreen-button"></div>
         <div id="unity-build-title">My proje test</div>
       </div>
+    </div>
+    <button id="mobile-fullscreen-btn" type="button">⛶ เต็มจอ</button>
+    <div id="mobile-portrait-overlay">
+      <div class="rotate-icon">📱 ↻</div>
+      <h2>กรุณาตะแคงจอมือถือเป็นแนวนอน</h2>
+      <p>เกมนี้ออกแบบสำหรับมุมมองแนวนอน (Landscape) เพื่อการบังคับที่ถนัดที่สุด</p>
+      <button id="portrait-fullscreen-btn" type="button">ขยายเต็มจอแนวนอน</button>
     </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
@@ -87,7 +125,10 @@
       // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
       // expected to change.
 
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      var isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0);
+      if (isMobileDevice) {
         // Mobile device style: fill the whole browser client area with the game canvas:
 
         var meta = document.createElement('meta');
@@ -99,7 +140,7 @@
 
         // To lower canvas resolution on mobile devices to gain some
         // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
+        config.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
 
 
       } else {
@@ -126,6 +167,35 @@
               });
             };
 
+      if (typeof isMobileDevice !== 'undefined' && isMobileDevice) {
+        var fsBtn = document.getElementById('mobile-fullscreen-btn');
+        var portraitOverlay = document.getElementById('mobile-portrait-overlay');
+        var portraitFsBtn = document.getElementById('portrait-fullscreen-btn');
+        if (fsBtn) fsBtn.style.display = 'block';
+
+        function requestLandscapeFullscreen() {
+          var el = document.documentElement;
+          var req = el.requestFullscreen || el.webkitRequestFullscreen;
+          if (req) {
+            Promise.resolve(req.call(el)).then(function() {
+              if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(function(){});
+              }
+            }).catch(function(){});
+          }
+        }
+        if (fsBtn) fsBtn.addEventListener('click', requestLandscapeFullscreen);
+        if (portraitFsBtn) portraitFsBtn.addEventListener('click', requestLandscapeFullscreen);
+
+        function checkOrientation() {
+          if (!portraitOverlay) return;
+          var isPortrait = window.innerHeight > window.innerWidth;
+          portraitOverlay.style.display = isPortrait ? 'flex' : 'none';
+        }
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+        checkOrientation();
+      }
       document.body.appendChild(script);
 
     </script>
